@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>London Collision Data Map - Mapbox Version</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            display: flex;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+        }
+
+        #controls {
+            width: 320px;
+            height: 100vh;
+            flex-shrink: 0;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .map-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: black;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 1px 3px;
+            border-radius: 2px;
+            white-space: nowrap;
+        }
+
+        #timeline-container {
+            display: none;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            margin-right: 6px;
+        }
+
+        /* New: Force labels onto their own lines and space them out */
+        label {
+            display: block;
+            margin-top: 12px;
+            margin-bottom: 5px;
+        }
+
+        input[type="file"] {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        select,
+        button {
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+
+        select,
+        button,
+        input {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        #loading {
+            display: none;
+            color: #d9534f;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* 4-Angle Grid Styling */
+        .image-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .image-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .angle-label {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 10px;
+            padding: 2px 4px;
+        }
+
+        .leaflet-popup-content {
+            width: 400px !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="controls">
+        <h3>London Collision Map</h3>
+        <label for="csv-file"><b>1. Load Processed CSV:</b></label>
+        <input type="file" id="csv-file" accept=".csv" />
+
+        <div id="feature-container" style="display:none; margin-top: 15px;">
+            <label for="feature-select"><b>2. Select Feature to Color:</b></label>
+            <select id="feature-select"></select>
+            <button id="export-btn"><b>Export Map as Image</b></button>
+        </div>
+        <div id="severity-container" style="display:none; margin-top: 15px;">
+            <label><b>Severity:</b></label>
+            <div id="severity-options"></div>
+        </div>
+        <div id="timeline-container" style="display:none;">
+            <label><b>3. Filter by Year:</b></label>
+            <input type="range" id="year-slider-min" step="1">
+            <input type="range" id="year-slider-max" step="1">
+            <div id="year-label"></div>
+        </div>
+        <div id="size-container" style="display:none;">
+            <label><b>4. Adjust Point Size:</b></label>
+            <input type="range" id="size-slider" min="1" max="15" step="1" value="5">
+            <div id="size-label">Size: 5</div>
+        </div>
+        <div id="loading">Processing Data... Please wait.</div>
+    </div>
+
+    <div id="export-container" style="flex-grow: 1; position: relative; height: 100vh; width: calc(100vw - 320px);">
+        <div id="map" style="width: 100%; height: 100%;"></div>
+        <div id="legend"></div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-image/leaflet-image.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="config.local.js"></script>
+    <script>
+        // --- CONFIGURATION ---
+        // Supply your own URL-restricted browser token in ignored config.local.js.
+        const MAPBOX_TOKEN = window.MAPBOX_PUBLIC_TOKEN || '';
+        const MAPBOX_STYLE = 'mapbox/light-v11'; // This matches the clean grey style
+
+        const map = L.map('map', { preferCanvas: true }).setView([51.505, -0.09], 12);
+
+        // Mapbox Tile Layer
+        L.tileLayer(`https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}`, {
+            attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a>',
+            maxZoom: 19,
+            id: MAPBOX_STYLE,
+            tileSize: 512,
+            zoomOffset: -1,
+            accessToken: MAPBOX_TOKEN,
+            crossOrigin: "anonymous"
+        }).addTo(map);
+
+        fetch('../../data/geographic_boundaries/london_boroughs.geojson')
+            .then(res => res.json())
+            .then(data => {
+
+                const boroughLayer = L.geoJSON(data, {
+                    style: {
+                        color: '#333',
+                        weight: 1,
+                        fillOpacity: 0.03
+                    },
+                    onEachFeature: function (feature, layer) {
+                        const name = feature.properties.name || feature.properties.NAME || feature.properties.borough;
+
+                        if (name) {
+                            layer.bindTooltip(name, { sticky: true });
+                        }
+
+                        // Hover highlight (very useful)
+                        layer.on({
+                            mouseover: function (e) {
+                                e.target.setStyle({
+                                    weight: 2,
+                                    color: '#000',
+                                    fillOpacity: 0.08
+                                });
+                            },
+                            mouseout: function (e) {
+                                boroughLayer.resetStyle(e.target);
+                            }
+                        });
+                    }
+                });
+
+                boroughLayer.addTo(map);
+            });
+
+        let globalData = [];
+        function getYearValue(d) {
+            const y = d.year ?? d.collision_year;
+            return Number.isFinite(+y) ? +y : null;
+        }
+        let markerLayer = L.layerGroup().addTo(map);
+        let interestLayer = L.layerGroup().addTo(map);
+        document.getElementById('year-slider-min').addEventListener('input', function () {
+            const minEl = document.getElementById('year-slider-min');
+            const maxEl = document.getElementById('year-slider-max');
+            if (+minEl.value > +maxEl.value) minEl.value = maxEl.value;
+            document.getElementById('year-label').innerText = `Between: ${minEl.value} and ${maxEl.value}`;
+            updateMap();
+        });
+
+        document.getElementById('year-slider-max').addEventListener('input', function () {
+            const minEl = document.getElementById('year-slider-min');
+            const maxEl = document.getElementById('year-slider-max');
+            if (+maxEl.value < +minEl.value) maxEl.value = minEl.value;
+            document.getElementById('year-label').innerText = `Between: ${minEl.value} and ${maxEl.value}`;
+            updateMap();
+        });
+        document.getElementById('size-slider').addEventListener('input', function () {
+            document.getElementById('size-label').innerText = `Size: ${this.value}`;
+            updateMap();
+        });
+
+        document.getElementById('csv-file').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('loading').style.display = 'block';
+
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function (results) {
+                    globalData = results.data;
+                    const severityValues = [...new Set(globalData.map(d => d.Severity).filter(d => d !== undefined && d !== null && d !== ''))];
+                    const severityOptions = document.getElementById('severity-options');
+                    severityOptions.innerHTML = '';
+
+                    severityValues.forEach(val => {
+                        const id = `severity-${val}`;
+                        severityOptions.innerHTML += `
+        <label style="display:block; margin-top:4px;">
+            <input type="checkbox" class="severity-filter" value="${val}" checked style="width:auto; margin-right:6px;">
+            ${val}
+        </label>
+    `;
+                    });
+
+                    document.getElementById('severity-container').style.display = 'block';
+
+                    document.querySelectorAll('.severity-filter').forEach(cb => {
+                        cb.addEventListener('change', updateMap);
+                    });
+                    populateFeatures(results.meta.fields);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('feature-container').style.display = 'block';
+                    const years = globalData
+                        .map(getYearValue)
+                        .filter(v => v !== null);
+                    
+                    const minYear = Math.min(...years);
+                    const maxYear = Math.max(...years);
+
+                    const sliderMin = document.getElementById('year-slider-min');
+                    const sliderMax = document.getElementById('year-slider-max');
+
+                    sliderMin.min = minYear;
+                    sliderMin.max = maxYear;
+                    sliderMin.value = minYear;
+
+                    sliderMax.min = minYear;
+                    sliderMax.max = maxYear;
+                    sliderMax.value = maxYear;
+
+                    document.getElementById('year-label').innerText = `Between: ${minYear} and ${maxYear}`;
+
+                    document.getElementById('timeline-container').style.display = 'block';
+                    document.getElementById('size-container').style.display = 'block';
+                    updateMap();
+
+                }
+            });
+        });
+
+        function populateFeatures(fields) {
+            const select = document.getElementById('feature-select');
+            select.innerHTML = '';
+
+            // We exclude the specific image columns from being selectable as data features
+            const exclude = ['latitude', 'longitude', 'closest_image', 'image_0', 'image_90', 'image_180', 'image_270', 'Severity'];
+            fields.forEach(f => {
+                if (!exclude.includes(f)) {
+                    let option = document.createElement('option');
+                    option.value = f;
+                    option.textContent = f;
+                    select.appendChild(option);
+                }
+            });
+        }
+
+        document.getElementById('feature-select').addEventListener('change', updateMap);
+
+        function updateMap() {
+            const feature = document.getElementById('feature-select').value;
+            if (!feature || globalData.length === 0) return;
+
+            let latFeature, lonFeature;
+
+            if (feature.endsWith('_road_m')) {
+                latFeature = feature.replace('_m', '_lat');
+                lonFeature = feature.replace('_m', '_lon');
+            } else if (feature.endsWith('_crow_m')) {
+                latFeature = feature.replace('_crow_m', '_crow_lat');
+                lonFeature = feature.replace('_crow_m', '_crow_lon');
+            }
+            const hasInterestPoints =
+                globalData[0].hasOwnProperty(latFeature) &&
+                globalData[0].hasOwnProperty(lonFeature);
+
+            let min = d3.min(globalData, d => d[feature]);
+            let max = d3.max(globalData, d => d[feature]);
+            let uniqueVals = [...new Set(globalData.map(d => d[feature]))];
+
+            const isNumeric = typeof globalData[0][feature] === 'number' && uniqueVals.length > 10;
+            const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain([min, max]);
+            const ordinalScale = d3.scaleOrdinal(d3.schemeTableau10).domain(uniqueVals);
+
+            markerLayer.clearLayers();
+            interestLayer.clearLayers(); // Clear previous interest points
+
+            const minYear = +document.getElementById('year-slider-min').value;
+            const maxYear = +document.getElementById('year-slider-max').value;
+            const selectedSeverities = [...document.querySelectorAll('.severity-filter:checked')].map(cb => cb.value);
+
+            globalData.forEach(d => {
+                if (!d.latitude || !d.longitude) return;
+                const rowYear = getYearValue(d);
+                if (rowYear === null) return;
+                if (rowYear < minYear || rowYear > maxYear) return;
+                if (selectedSeverities.length && !selectedSeverities.includes(String(d.Severity))) return;
+                let color = isNumeric ? colorScale(d[feature]) : ordinalScale(d[feature]);
+                const size = +document.getElementById('size-slider').value;
+
+                // 1. Draw the Accident (Main Circle)
+                let marker = L.circleMarker([d.latitude, d.longitude], {
+                    radius: size,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                });
+
+                // 2. Draw the Interest Point if feature matches (Distinct Blue Circle)
+                // Use a smaller radius, no fill, thick blue border to stand out
+                if (hasInterestPoints && d[latFeature] && d[lonFeature]) {
+                    let interestMarker = L.circleMarker([d[latFeature], d[lonFeature]], {
+                        radius: Math.max(7, size + 2),   // bigger circle
+                        fillColor: '#ff4500',             // bright orange/red
+                        color: '#ffff00',                  // yellow border to pop against the map
+                        weight: 1,                         // thicker border
+                        opacity: 1,
+                        fillOpacity: 1
+                    }).bindTooltip(`Interest Point: ${feature.replace('_lat', '')}`);
+                    // Optional: Draw a subtle line connecting the accident to the interest point
+                    let line = L.polyline([[d.latitude, d.longitude], [d[latFeature], d[lonFeature]]], {
+                        color: '#007bff',
+                        weight: 1,
+                        opacity: 0.3,
+                        dashArray: '4, 4'
+                    });
+
+                    interestLayer.addLayer(interestMarker);
+                    interestLayer.addLayer(line);
+                }
+
+                marker.on('click', function () {
+                    let html = `<div style="max-height: 400px; overflow-y: auto; width: 300px;">`;
+                    if (d.closest_image) {
+                        html += `<div class="image-grid">`;
+                        [0, 90, 180, 270].forEach(angle => {
+                            // This removes any existing suffix like _0.jpg, _90.jpg, etc., and adds the correct angle
+                            const imgFile = d.closest_image.replace(/_\d+\.jpg$/, "") + `_${angle}.jpg`;
+
+                            const imgUrl = `https://images.weserv.nl/?url=${encodeURIComponent('https://cycleai.net/london/training/training/Images/' + imgFile)}&w=300`;
+                            html += `<div class="image-container">
+                <img src="${imgUrl}" referrerpolicy="no-referrer" />
+                <div class="angle-label">${angle}°</div>
+             </div>`;
+                        });
+                        html += `</div>`;
+                    }
+
+                    html += `<table style="width:100%; border-collapse: collapse; font-size:11px;">`;
+                    for (let key in d) {
+                        if (['latitude', 'longitude', 'closest_image'].includes(key) || !d[key]) continue;
+                        html += `<tr><td style="border: 1px solid #ddd; padding: 3px; font-weight:bold;">${key}</td><td style="border: 1px solid #ddd; padding: 3px;">${d[key]}</td></tr>`;
+                    }
+                    html += `</table></div>`;
+                    marker.bindPopup(html).openPopup();
+                });
+
+                markerLayer.addLayer(marker);
+            });
+            const legend = document.getElementById('legend');
+legend.innerHTML = `<b>${feature}</b><br/>`;
+
+if (isNumeric) {
+    // Keep years as whole numbers in the legend
+    if (feature === 'collision_year' || feature === 'year') {
+        const start = Math.floor(min);
+        const end = Math.floor(max);
+
+        for (let year = start; year <= end; year++) {
+            legend.innerHTML += `
+                <div class="legend-item">
+                    <div class="legend-color" style="background:${colorScale(year)}"></div>
+                    ${year}
+                </div>
+            `;
+        }
+    } else {
+        // continuous scale → show gradient steps
+        const steps = 5;
+        for (let i = 0; i <= steps; i++) {
+            const value = min + (i / steps) * (max - min);
+            const color = colorScale(value);
+
+            legend.innerHTML += `
+                <div class="legend-item">
+                    <div class="legend-color" style="background:${color}"></div>
+                    ${value.toFixed(2)}
+                </div>
+            `;
+        }
+    }
+} else {
+    // categorical
+    uniqueVals.slice(0, 10).forEach(val => {
+        legend.innerHTML += `
+            <div class="legend-item">
+                <div class="legend-color" style="background:${ordinalScale(val)}"></div>
+                ${val}
+            </div>
+        `;
+    });
+}
+        }
+
+        function buildStaticMapUrl() {
+            const feature = document.getElementById('feature-select').value;
+            const selectedYear = +document.getElementById('year-slider').value;
+            const size = +document.getElementById('size-slider').value;
+            const selectedSeverities = [...document.querySelectorAll('.severity-filter:checked')].map(cb => cb.value);
+
+            const visible = globalData.filter(d =>
+                d.latitude && d.longitude && d.collision_year <= selectedYear && (!selectedSeverities.length || selectedSeverities.includes(String(d.Severity)))
+            );
+
+            if (!visible.length) return null;
+
+            let min = d3.min(globalData, d => d[feature]);
+            let max = d3.max(globalData, d => d[feature]);
+            let uniqueVals = [...new Set(globalData.map(d => d[feature]))];
+
+            const isNumeric = typeof globalData[0][feature] === 'number' && uniqueVals.length > 10;
+            const colorScale = d3.scaleSequential(d3.interpolateTurbo).domain([min, max]);
+            const ordinalScale = d3.scaleOrdinal(d3.schemeTableau10).domain(uniqueVals);
+
+            const markerSize = size <= 4 ? 'small' : size <= 9 ? 'medium' : 'large';
+
+            const features = visible.map(d => ({
+                type: 'Feature',
+                properties: {
+                    'marker-size': markerSize,
+                    'marker-color': (isNumeric ? colorScale(d[feature]) : ordinalScale(d[feature]))
+                },
+                geometry: {
+                    type: 'Point',
+                    coordinates: [d.longitude, d.latitude]
+                }
+            }));
+
+            const geojson = {
+                type: 'FeatureCollection',
+                features
+            };
+
+            const overlay = `geojson(${encodeURIComponent(JSON.stringify(geojson))})`;
+
+            const center = map.getCenter();
+            const zoom = map.getZoom().toFixed(2);
+            const sizePx = map.getSize();
+
+            return `https://api.mapbox.com/styles/v1/mapbox/light-v11/static/${overlay}/${center.lng},${center.lat},${zoom},0,0/${sizePx.x}x${sizePx.y}@2x?attribution=false&access_token=${MAPBOX_TOKEN}`;
+        }
+
+        document.getElementById('export-btn').addEventListener('click', function () {
+            const container = document.getElementById('export-container');
+            const zoomControl = document.querySelector('.leaflet-control-zoom'); // Find the +/- buttons
+            const btn = this;
+
+            btn.innerText = "Exporting...";
+            map.closePopup();
+
+            // 1. Hide the zoom buttons before capture
+            if (zoomControl) zoomControl.style.display = 'none';
+
+            html2canvas(container, {
+                useCORS: true,
+                allowTaint: false,
+                scale: 2
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'map_with_labels.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                // 2. Show the zoom buttons again after export is done
+                if (zoomControl) zoomControl.style.display = 'block';
+
+                btn.innerText = "Export Map as Image";
+            }).catch(err => {
+                console.error(err);
+                if (zoomControl) zoomControl.style.display = 'block'; // Show them even if it fails
+                btn.innerText = "Export Failed";
+            });
+        });
+    </script>
+</body>
+
+</html>
