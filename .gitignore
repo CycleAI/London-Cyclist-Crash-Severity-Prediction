@@ -1,0 +1,11 @@
+# Local credentials and machine-generated files
+.env
+.env.*
+!.env.example
+.DS_Store
+__MACOSX/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
