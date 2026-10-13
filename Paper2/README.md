@@ -1,82 +1,67 @@
-# Cyclist Crash Severity in Greater London: A Multimodal Spatiotemporal Approach
+# Paper 2 enrichment workflows
 
-[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
-[![XGBoost](https://img.shields.io/badge/XGBoost-Classifier-orange.svg)](https://xgboost.readthedocs.io/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[Repository overview](../README.md) · [Colab archive](ColabNoteBooks/README.md) · [Interactive map](Map/README.md)
 
-This repository implements an end-to-end urban analytics pipeline to predict cyclist crash severity (*Slight* vs. *Serious/Fatal*) across Greater London. By fusing traditional police crash databases with dynamic weather, POI-network routing, street-level computer vision features, and advanced risk proxies, this codebase shifts proactive cycling safety from simple retrospective hotspot maps to conditional risk profiles.
+These notebooks implement components of the contextual-data and extended-enrichment programme described in manuscript Sections 3.4–3.5 and Appendices A/C. They do not contain the final strict XGBoost experiment. Candidate image/terrain/composite features must not be credited with the paper's performance without the missing selected-feature manifest and evaluated model.
 
-The repository features a flat directory structure designed to process, model, and evaluate these complex interactions cleanly.
+## Files
 
----
+| File | Purpose / inputs → outputs |
+| --- | --- |
+| [GenerateLondonGrid.ipynb](GenerateLondonGrid.ipynb) | London boundary → `greater_london_grid_50m_full.csv`; projected-grid and visualisation alternatives. Appendix C sampling context. |
+| [VisualizeLondonGrid.ipynb](VisualizeLondonGrid.ipynb) | Grid CSV → Folium `london_points_map.html`, with image-link popups when available. |
+| [ExtractMetadataForRandomGridPoints.ipynb](ExtractMetadataForRandomGridPoints.ipynb) | Sample grid coordinates → Street View metadata in Azure; inspect sample count, random seed and prefixes. |
+| [DownloadAccidentsMetadataAndImages.ipynb](DownloadAccidentsMetadataAndImages.ipynb) | `all_59k_accidents_raw.csv` → crash-centred Street View metadata and four-view images in Azure. Intended linkage workflow, not evidence of final-cohort coverage. |
+| [CreateMetadataFile.ipynb](CreateMetadataFile.ipynb) | Configured local metadata JSON → `streetview_metadata_compiled.csv`; includes separate Azure upload cells. |
+| [CreateMetadataMapping.ipynb](CreateMetadataMapping.ipynb) | Metadata folder → `streetview_metadata.csv`, preserving request/panorama/image linkage fields. |
+| [AddCollisionToMetadata.ipynb](AddCollisionToMetadata.ipynb) | `streetview_metadata.csv` + `collisions_final.csv` → `streetview_metadata_with_collision.csv` using requested coordinates. Audit repeated coordinates/IDs. |
+| [AddMetadataToAccidents.ipynb](AddMetadataToAccidents.ipynb) | `final_file_sin_extra.csv` + `streetview_metadata_compiled.csv` → `merged_dataset_2.csv` with image displacement and time-lag descriptors. |
+| [GetHistoryForecast.ipynb](GetHistoryForecast.ipynb) | Crash coordinates/timestamps → historical-weather/forecast requests, JSONL and merged diagnostics; contains multiple versions and reconciliation cells. |
+| [GetOpenMeteoArchiveData.ipynb](GetOpenMeteoArchiveData.ipynb) | Crash CSV → Open-Meteo archive JSONL/CSV, timestamp/missingness checks and merges. Review UTC conversion and time windows. |
+| [GetPrecipitationBacktracked.ipynb](GetPrecipitationBacktracked.ipynb) | `all_59k_accidents_complete_final_2_cleaned.csv` → `open_meteo_archive_precipitation_backtracked.jsonl`, searching backwards for precipitation. |
+| [ImageSegmentation.ipynb](ImageSegmentation.ipynb) | Azure/local Street View images → Mask2Former class masks, JSON summaries and overlays; includes upload/visualisation variants. |
+| [YOLOV10.py](YOLOV10.py) | Azure image batches → object detections and previews. Notebook-export syntax; confidence and blob-prefix settings need review. |
+| [ProcessImageAndObjectDetection.ipynb](ProcessImageAndObjectDetection.ipynb) | Segmentation/detection JSON and image statistics → `processed_features_*.csv`, including class counts, confidence sums, areas and 3×3 regions. Multiple variants and diagnostic cells. |
+| [ProcessImageStatsLocally.ipynb](ProcessImageStatsLocally.ipynb) | Local images selected by `PAPER2_IMAGE_DIR` → colour/texture/edge and grid statistics; output controlled by `PAPER2_IMAGE_STATS_CSV`. |
+| [MergeFinalFiles.ipynb](MergeFinalFiles.ipynb) | `processed_features_conf_0.5_filled_metadata_no_collision.csv` + `image_stats_processed_final_grids_no_collision.csv` → `final_dataset_no_collision.csv`; inner one-to-one merge on request coordinates, panorama and image name. |
+| [ExtractSlope.ipynb](ExtractSlope.ipynb) | `merged_dataset_2.csv` + OSM roads + Environment Agency LiDAR → slope-enriched collision CSVs and quality flags; includes successive refinement cells. |
+| [README.md](README.md) | Main Paper 2 workflow, input requirements and manuscript mapping. |
 
-## 💾 Data Availability
+`ColabNoteBooks/` contains earlier or alternative implementations; `Map/` contains descriptive browser visualisation. Their READMEs catalogue every file. Similar filenames at root, here and in Colab are historical versions, not an automatically synchronised package.
 
-All datasets utilized in this pipeline—including processed features, street view segmentation maps, and historical coordinates—are hosted on **Azure Blob Storage**:
-* **Account:** `cycleai`
-* **Container:** `london`
+## Suggested execution order
 
----
+1. Choose grid-based imagery acquisition (`GenerateLondonGrid` → `ExtractMetadataForRandomGridPoints`) or the crash-centred acquisition in `DownloadAccidentsMetadataAndImages`. Record exact inputs and sample settings.
+2. Compile image metadata using `CreateMetadataFile` or `CreateMetadataMapping`. Check their different output schemas before choosing the downstream collision-linkage notebook.
+3. Attach collision identifiers or metadata displacement/time lag using `AddCollisionToMetadata` / `AddMetadataToAccidents`. Coordinates alone are not unique event identifiers.
+4. Retrieve weather with `GetOpenMeteoArchiveData`; use precipitation/history-forecast variants only for the intended feature definition. Audit UTC, daylight saving, aggregation windows and availability before the crash.
+5. Run the selected detector and segmentation variant, then `ProcessImageAndObjectDetection` and `ProcessImageStatsLocally` on aligned image IDs/headings.
+6. Prepare the two exact input tables required by `MergeFinalFiles`. It uses `pandas.read_csv(engine="pyarrow")` and `validate="one_to_one"`; duplicated merge keys should fail rather than expand rows. It outputs an image-level table, not the final crash cohort.
+7. Run `ExtractSlope` only after road/terrain data and CRS checks. Keep quality flags and per-record source linkage.
 
-## 🛠️ Feature Architecture
+This is a conceptual sequence of components, not a tested run-all pipeline. Each notebook contains its own paths, defaults and intermediate outputs. Inspect source cells and use scratch copies to avoid overwriting data.
 
-The input modeling dataset contains **59,979 collision events** and integrates heterogeneous spatial, temporal, and environmental data:
+## Inputs and configuration
 
-* **Historical Crash Statistics:** Baseline pre-crash spatial counts compiled from TfL and Stats19 datasets, including total counts of past accidents and prior severe collisions.
-* **Spatial & Points of Interest (POI) Metrics:** Proximity to key urban anchors (schools, pubs, road signals, overground, and underground stations). The schema tracks both network-routing distances (calculated using an edge-projection method onto road links) and straight-line ("as the crow flies") Euclidean distances, denoted by `crow` in the variable names.
-* **Meteorological Data (Open-Meteo):** Hourly weather conditions (e.g., temperature, humidity, apparent temperature, and hourly precipitation) queried from the Open-Meteo Archive API.
-* **Engineered Weather Features:** Rolling temporal averages and cumulative summations covering the "last $x$ hours", alongside tracking indicators for hours elapsed since the last rain event within the past 7 days.
-* **Computer Vision Infrastructure Proxies:** Object detection counts and areas (**YOLOv10**) alongside pixel-level semantic segmentation ratios (**Mask2Former**) extracted from 19,995 multi-view Google Street View images (0°, 90°, 180°, and 270°). These represent physical and structural characteristics of the roadway environment (e.g., presence of roads, sidewalks, vegetation, and signage).
-* **Advanced Risk & Traffic Proxies:** High-level engineered spatiotemporal features:
-  * **Speed-Energy Proxy:** A quadratic scaling of posted limits to approximate kinetic energy exposure, defined as:
-    $$\text{speed-energy-proxy} = \left(\frac{\text{speedlimit-clean}}{20}\right)^2$$
-  * **Weighted Prior Severe-Collision Memory:** Decayed density where closer/more recent severe crashes are heavily prioritized over large buffers.
-  * **Multi-Scale Hotspot Concentration Gradient:** Captured as the ratio between fine-scale and broad-scale past-collision densities.
-  * **Exposure-Adjusted Collision History:** Local historic crash counts normalized by average localized cyclist traffic volumes (log-scaled exposure).
-  * **Road Gradient Estimation:** Longitudinal road gradient derived from combining coordinates with LiDAR-based digital elevation data.
+The archive does not bundle `all_59k_accidents_raw.csv`, `collisions_final.csv`, the final one-to-one image merge inputs, all raw image/metadata blobs, or the final 59,628-record analytical table. Earlier [bundled data](../Data/README.md) are not substitutes with guaranteed equivalent row counts or schemas.
 
----
+The original data references identify Azure account `cycleai`, container `london`, prefix `Paper2Data/`, with objects such as `paper_2_final_dataset.csv`, `collisions_final.csv`, `streetview_metadata_with_collision.csv`, `image_stats_processed_final_grids_no_collision.csv`, `processed_features_conf_0.5_filled_metadata_no_collision.csv` and `ukbankholidays-jul19.xls`. Obtain authorised access and verify hashes/vintages. Signed URL credentials were removed; no currently valid access link or final-model correspondence is asserted.
 
-## 📦 Repository Structure
+Google/Azure notebooks commonly read `STREET_VIEW_API_KEY` and `AZURE_STORAGE_CONN_STR`; some use `AZURE_CONNECTION_STRING` or local `CONNECTION_STRING`/`CONN_STR` settings. Weather uses `OPEN_METEO_API_KEY`. Read each configuration cell. Use notebook secret storage or environment variables; never commit working secrets. Blob uploads and API calls are real side effects.
 
-The codebase is structured flatly for simple execution and quick adaptation:
+For local image statistics, set `PAPER2_IMAGE_DIR` to a directory of the crash-enrichment images. Its default is `./images`; `PAPER2_IMAGE_STATS_CSV` defaults to `image_stats_processed_grids.csv`. This output still needs metadata association/renaming before the final merge; the notebook does not automatically produce all merge keys.
 
-```directory
-.
-├── ColabNoteBooks             # Folder with all raw notebooks used in this project
-│   ├── input_nn.csv                       # Final dataset used to train the neural network, including accident, Street View, object detection, segmentation, and Open-Meteo features
-│   └── open_meteo.jsonl                   # Raw Open-Meteo API responses
-├──  AddMetadataToAccidents.ipynb # Enriches the accident dataset with two additional features derived from Google Street View metadata: streetview_distance_m and streetview_time_diff_days
-├──  CreateMetadataFile.ipynb # Creates the streetview_metadata_compiled.csv file
-├──  DownloadAccidentsMetadataAndImages.ipynb # Used for google street view images. The first part searches for a valid image within 50m and if found it saves the metadata. The second part reads the pano id from the metadata and dlownloads the images
-├──  ExtractMetadataForRandomGridPoints.ipynb # Randomly sample points from a CSV of lat/lng and verify that a google street view image exists. If found within 50m, save the metadata in azure
-├──  ExtractSlope.ipynb # For each accident location it computes the inclination. 20m before and after are used for the estimation. I uses road gradient from OpenStreetMap road geometry and 1 m LiDAR elevation data.
-├── GenerateLondonGrid.ipynb # Generates the London Grid by randomly sampling points within Greater London with a 50m spacing
-├── GetHistoryForecast.ipynb  # Retrieves the weather forecast for the accident location, before the accident happened.
-├── GetOpenMeteoArchiveData.ipynb      # Retrieves all the available open meteo archive data for the accident location
-├── GetPrecipitationBacktracked.ipynb      # Goes back up to 7 days to find last time it rained at the accident location
-├── ImageSegmentation.ipynb      # Segments the images in Azure using Mask2Former
-├── ProcessImageAndObjectDetection.ipynb      # Merged object detection and image segmnetation features and computes the averages and centroids for each location
-├── VisualizeLondonGrid.ipynb      # Generates a map to visualize the London Grid
-├── YOLOV10.ipynb      # Performs object detection using YoloV10
-├── AddCollisionToMetadata.ipynb      # Adds collison id to metadat file
-├── CreateMetadataMapping.ipynb      # Creates metadata file from folder
-├── MergeFinalFiles.ipynb      # Merges image statistics file with object detection and image segmentation
-├── ProcessImageStatsLocally.ipynb      # Computes image statistics using open cv, from a local folder with 640 x 640 px images
-└── README.md             # This documentation
+## Dependencies and runtime
 
-All the data is available in Azure Blob Storage, london container, Paper 2 Data and at the following links:
+Use Jupyter/Colab and the [root setup](../README.md). Depending on the notebook: pandas, NumPy, SciPy, pyarrow, requests, tqdm, azure-storage-blob, Pillow, OpenCV, scikit-image, matplotlib, Folium, PyTorch/Transformers, Ultralytics, GeoPandas, Shapely, pyproj, OSMnx and rasterio. Segmentation variants may require Detectron2 and a compatible CUDA environment. There is no verified pinned environment; installation cells reflect the archived experiments. Do not execute all installers into one environment as if they were a lockfile.
 
-Final paper 2 data - https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net/london/Paper2Data/paper_2_final_dataset.csv?sp=r&st=2026-08-09T16:09:35Z&se=2086-08-20T00:24:35Z&spr=https&sv=2026-02-06&sr=b&sig=YOUR_AZURE_SAS_SIGNATURE . 
+## Validation and paper correspondence
 
-Street view metadata mapping - https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net/london/Paper2Data/streetview_metadata_with_collision.csv?sp=r&st=2026-08-09T16:10:00Z&se=2086-09-04T00:25:00Z&spr=https&sv=2026-02-06&sr=b&sig=YOUR_AZURE_SAS_SIGNATURE
+- Grid spacing is described in metres in British National Grid; request coordinates are WGS84. Inspect CRS choices in each historical variant.
+- The paper describes four headings, 640×640 images and a 50 m Street View request radius. Its earlier acquisition totals are inconsistent; filename counts and code constants do not resolve the final-cohort linkage.
+- YOLO confidence sums are not calibrated class probabilities; summed boxes can overlap. Segmentation fractions depend on the actual checkpoint label map. A current code default does not certify the final experiment's checkpoint.
+- Preserve request/panorama displacement, capture dates and missingness. Later imagery does not establish historically available pre-crash context.
+- The terrain appendix describes 20 m profiles on either side, 2 m spacing and robust Theil–Sen fitting, with distance/coverage/bridge/tunnel/grade flags. Verify that the chosen notebook cells match that procedure.
+- Earlier code may fill missing image features with zero or drop unmatched records. These are historical implementation choices, not endorsed missingness policies for the manuscript's final cohort.
 
-Image stats - https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net/london/Paper2Data/image_stats_processed_final_grids_no_collision.csv?sp=r&st=2026-08-09T16:10:29Z&se=2096-08-22T00:25:29Z&spr=https&sv=2026-02-06&sr=b&sig=YOUR_AZURE_SAS_SIGNATURE
-
-Image segmentation and object detection - https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net/london/Paper2Data/processed_features_conf_0.5_filled_metadata_no_collision.csv?sp=r&st=2026-08-09T16:11:05Z&se=2086-08-22T00:26:05Z&spr=https&sv=2026-02-06&sr=b&sig=YOUR_AZURE_SAS_SIGNATURE
-
-Accidents file - https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net/london/Paper2Data/collisions_final.csv?sp=r&st=2026-08-10T14:56:59Z&se=2086-08-29T23:11:59Z&spr=https&sv=2026-02-06&sr=b&sig=YOUR_AZURE_SAS_SIGNATURE
-
-UK Bank holidays file - https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net/london/Paper2Data/ukbankholidays-jul19.xls?sp=r&st=2026-08-10T15:42:18Z&se=2086-08-10T23:57:18Z&spr=https&sv=2026-02-06&sr=b&sig=YOUR_AZURE_SAS_SIGNATURE
-
-The Map folder contains the code for the interactive map available here: https://cycleai.github.io/accidents-map/
+Notebook JSON and retained archives were checked; API acquisition, GPU inference, terrain processing and model training were not executed during documentation.

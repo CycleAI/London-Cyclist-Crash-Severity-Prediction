@@ -1,25 +1,32 @@
-# Source archive
+# Paper 2 source and scope record
 
-This repository was imported from `London-Bike-Safety-no-git.zip`, which Codrin Bostan sent on 11 August 2026 with the message “The final repo.”
+## Source
 
-- Source: PRIVATE_REFERENCE_NOT_PUBLISHED
-- Source ZIP size: 132,791,525 bytes.
-- Source ZIP SHA-256: `aa4a01753df561982dbb58f2110dde048c6bc91797b71790d61ce612fc801a0a`.
-- All 147 files under the archive's `London-Bike-Safety-no-git/` directory are included, with the same relative paths. The outer `__MACOSX/` metadata directory is omitted.
-- The full source includes `Paper2/`, `Paper1_CyclingSafetyPerception/`, and shared data and processing code. The initial import retains all of these folders.
+Codrin Bostan sent `London-Bike-Safety-no-git.zip` on 11 August 2026 with “The final repo.”
 
-## Credential handling
+- [Source ZIP](PRIVATE_REFERENCE_NOT_PUBLISHED).
+- Size: 132,791,525 bytes.
+- SHA-256: `aa4a01753df561982dbb58f2110dde048c6bc91797b71790d61ce612fc801a0a`.
+- Initial import: `ff930ecda6b71ef431f9ebd1624396945df3880b`.
 
-Hardcoded Azure storage, Azure OpenAI, OpenAI, Google Street View, Hugging Face, and routing API credentials were replaced with `YOUR_...` placeholders before the first commit. Azure signed-URL signatures were similarly replaced with `YOUR_AZURE_SAS_SIGNATURE`. This also covers the two ZIP files containing notebooks and credential values in saved notebook output. The original credential values are not committed.
+The initial import included 147 source files plus `.gitignore` and an import note. Top-level macOS metadata was omitted. Private credentials and signed-URL signatures were replaced before the first commit. Browser Mapbox public tokens were retained; some runtime settings still require local configuration.
 
-Set the environment variables already used by each notebook, or configure its placeholder settings locally, before running code that needs authenticated services. Signed data links require a fresh authorised signature. Keep credentials out of Git and use local environment variables or notebook secret storage.
+## Scope correction — 14 October 2026
 
-125 original files are byte-for-byte unchanged; the other 22 contain only credential substitutions (and ZIP repacking where a nested notebook changed). Data files, research logic, and saved results are otherwise preserved. A `.gitignore` and this provenance note were added for the import.
+Reviewed against [Article 2 Latest.docx](PRIVATE_REFERENCE_NOT_PUBLISHED), modified 8 October 2026, **Cyclist Crash Severity in Greater London: Multimodal Context, Temporal Validation and Feature Availability**.
 
-## Import validation
+Removed 41 files: the Paper 1 package; human/LLM perception voting and TrueSkill notebooks (including two compressed notebook bundles); perception-specific neural-network/importance artifacts; and the one-byte `Map` and `test` placeholders. This is a normal follow-up commit. Earlier content remains in Git history; history was not rewritten.
 
-The import was checked against a SHA-256 manifest of the source files. All 87 notebook documents (including two compressed notebooks) parse as JSON, and all five nested ZIP files pass integrity checks. The 25 CSV, GeoJSON, and image files are byte-for-byte unchanged.
+Two shared image-feature tables moved from `NeuralNetwork/` to `Data/ImageFeatures/`. The unrelated `safety_bin_1_10` column was removed from `Data/ImageFeatures/processed_features_conf_0.7.csv`, `Data/enriched_collision_data_100m_new.csv` and `Data/enriched_collision_data_300m_new.csv`. All rows, row order and retained cell values were preserved. Other retained CSV/ZIP data payloads are unchanged.
 
-Credential scanning covered nested archives, followed by a source-aware check of credential assignments and signed URLs. The seven remaining Gitleaks findings were reviewed: five are existing Mapbox public `pk.` tokens in browser maps, and two are ordinary code identifiers. Public map tokens are designed for client use, as documented in [Mapbox's access-token guidance](https://docs.mapbox.com/help/getting-started/access-tokens/); these map files are unchanged.
+Three crash-enrichment notebooks were renamed from `EnrichAccidentsPerceptionPoll.ipynb` to `EnrichAccidentsWithImageFeatures.ipynb`, at root, `Data/` and `Paper2/ColabNoteBooks/`, without changing their source cells. One stale output containing the removed perception label was cleared in each of the root and Colab copies. Unused perception-ranking filename constants and misleading error text were removed from shared extraction utilities. Outputs of source-edited cells were cleared.
 
-Six existing `.py` files contain notebook-style `!pip` commands and therefore do not parse as standalone Python scripts: `NeuralNetwork/create_input.py`, `Paper2/YOLOV10.py`, `download_images.py`, `generate_london_grid.py`, `kepler_map.py`, and `random_sampling.py`. They are retained exactly as supplied. Research pipelines were not executed; they require external data, credentials, and their original runtime dependencies.
+`Paper2/ProcessImageStatsLocally.ipynb` now reads `PAPER2_IMAGE_DIR` (default `./images`) and `PAPER2_IMAGE_STATS_CSV` (default `image_stats_processed_grids.csv`). The original perception-poll directory/output settings were removed; calculations were retained.
+
+Eight READMEs cover the root and all seven retained subdirectories. They separate paper-reported results, archived code behaviour, earlier snapshots and unavailable final-experiment artifacts. The linked manuscript was not modified or added to this repository.
+
+## Validation boundary
+
+Checks cover scope, CSV column removal with retained-value equality, moved/renamed file hashes, notebook JSON, nested CSV ZIP integrity, every directory/file's documentation coverage and local Markdown links. Retained code is checked for perception targets and voting/ranking dependencies. No acquisition, cloud upload, inference or training was run.
+
+The archive supports Paper 2 enrichment and earlier severity work; it does not contain a verified reproduction of the final strict XGBoost experiment. See the [root README](README.md) for missing cohort, feature, split, model and runtime artifacts. Notebook-only syntax and historical methodology are documented rather than silently rewritten.

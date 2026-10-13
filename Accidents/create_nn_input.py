@@ -55,7 +55,6 @@ except ImportError:
 
 
 # --- Project Configuration ---
-CSV_FILE_NAME = "ai_rank_gpt.csv"
 
 CONNECTION_STRING = AZURE_CONNECTION_STRING
 CONTAINER_NAME = "london"
