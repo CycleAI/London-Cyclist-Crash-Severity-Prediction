@@ -1,5 +1,12 @@
 # Paper 2 manuscript and release boundary
 
+> Historical record: this document describes the October archive before the latest
+> paper package and public-history sanitization. For the current release, see
+> [the paper package](../cyclist-severity-london/README.md) and
+> [PUBLIC_RELEASE.md](../PUBLIC_RELEASE.md). Earlier claims about retained tokens,
+> notebook outputs, unchanged history or missing final models no longer describe
+> the public release. Private source/document links have been removed.
+
 [Documentation](README.md) · [Repository overview](../README.md)
 
 Reference: [Article 2 Latest.docx](PRIVATE_REFERENCE_NOT_PUBLISHED), modified 8 October 2026, reviewed 14 October 2026: **Cyclist Crash Severity in Greater London: Multimodal Context, Temporal Validation and Feature Availability**.

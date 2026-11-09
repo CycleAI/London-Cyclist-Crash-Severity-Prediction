@@ -28,3 +28,12 @@ Expected fields include `latitude`, `longitude`, `collision_year` and `Severity`
 The HTML loads Leaflet, D3, Papa Parse, html2canvas and browser helpers from CDNs. Mapbox tile/static exports require a public browser token; image popups can contact CycleAI image hosting through `images.weserv.nl`. The CSV is parsed in the browser, but tile/image/export requests contact providers and can include coordinates. This is not an offline viewer.
 
 Outputs are interactive layers and user-triggered image exports, not modified CSVs or trained models. Verify coordinate bounds, year filters, label spelling, missing values and displayed point counts. Density and colouring are descriptive rather than exposure-adjusted risk or calibrated predictions. Static-map provider access and full export behaviour were not revalidated; the local page and shared boundary URL were checked.
+
+## Local token configuration
+
+Copy `config.example.js` to `config.local.js` beside `index.html`, and set
+`window.MAPBOX_PUBLIC_TOKEN` to your own URL-restricted Mapbox public browser
+token. `config.local.js` is ignored by Git. Browser tokens are visible to anyone
+using the page; never place a secret token in browser code. Without configuration,
+Mapbox basemap tiles and static-map exports will not work. Private image-hosting
+resource names are placeholders and also need local configuration.

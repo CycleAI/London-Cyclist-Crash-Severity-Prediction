@@ -1,5 +1,12 @@
 # Duplicate and version audit — 14 October 2026
 
+> Historical record: this document describes the October archive before the latest
+> paper package and public-history sanitization. For the current release, see
+> [the paper package](../cyclist-severity-london/README.md) and
+> [PUBLIC_RELEASE.md](../PUBLIC_RELEASE.md). Earlier claims about retained tokens,
+> notebook outputs, unchanged history or missing final models no longer describe
+> the public release. Private source/document links have been removed.
+
 [Documentation](README.md) · [Machine-readable path and hash record](reorganization_manifest.json)
 
 The audit compared file SHA-256 hashes, ordered notebook source cells, ordered executable lines, substantive source differences and CSV fields in row order. Filenames such as `Final`, folder location and filesystem timestamps were not treated as evidence of a newer scientific result.

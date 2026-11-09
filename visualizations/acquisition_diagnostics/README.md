@@ -20,3 +20,9 @@ Serve the repository root as described in the parent README and navigate to the 
 Compare requested coordinates with returned panorama coordinates to inspect displacement and spatial coverage. The sampled-coordinate view supports the same acquisition audit. Check source timestamps, counts, coordinate bounds and provider availability before using screenshots. Saved files do not prove current imagery availability or final-cohort linkage.
 
 To regenerate, inspect `workflows/07_descriptive_analysis/compare_requested_and_returned_coordinates.py` and `inspect_sampled_coordinates.ipynb`; they require configured Azure metadata inputs. Generated outputs should be saved in a scratch run directory. No regeneration or deployment was performed during this cleanup.
+
+## Public release
+
+Embedded Mapbox tokens, including the bundled third-party example token, have
+been removed. The saved Kepler maps may require your own locally configured
+public browser token for basemap tiles. Do not commit local credentials.

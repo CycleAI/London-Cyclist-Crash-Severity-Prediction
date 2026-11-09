@@ -12,3 +12,16 @@ venv/
 
 # Local experiment staging and outputs
 /work/
+
+# Restricted inputs and local credentials
+human_votes_05_06_26.csv
+*private-backup*
+*.bundle
+config.local.js
+.env
+.env.*
+!.env.example
+.DS_Store
+__MACOSX/
+.ipynb_checkpoints/
+__pycache__/

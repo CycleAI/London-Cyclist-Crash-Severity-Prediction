@@ -1,5 +1,12 @@
 # Paper 2 source and scope record
 
+> Historical record: this document describes the October archive before the latest
+> paper package and public-history sanitization. For the current release, see
+> [the paper package](../cyclist-severity-london/README.md) and
+> [PUBLIC_RELEASE.md](../PUBLIC_RELEASE.md). Earlier claims about retained tokens,
+> notebook outputs, unchanged history or missing final models no longer describe
+> the public release. Private source/document links have been removed.
+
 ## Source
 
 Codrin Bostan sent `London-Bike-Safety-no-git.zip` on 11 August 2026 with “The final repo.”
