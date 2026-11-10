@@ -1,8 +1,10 @@
 # Cyclist crash severity in Greater London
 
-Code, results and figures for the paper **"Cyclist Crash Severity in Greater London: Multimodal Context, Temporal Validation and Feature Availability"** ([citation to add]).
+Code, results and figures for the paper **"Cyclist Crash Severity in Greater London: Multimodal Context, Temporal Validation and Feature Availability"**.
 
 The study asks whether information known before a crash can tell whether a cyclist's injury will be serious or fatal rather than slight. It uses 41,606 police-recorded cyclist crashes in Greater London from November 2016 to June 2025, when every crash follows the same injury-based definition of severity.
+
+[Repository guide](../README.md) · [Data](data/README.md) · [Notebooks](notebooks/README.md) · [Results](results/README.md) · [Figures](figures/README.md)
 
 ## Main results (test part, 6,241 crashes from April 2024 to June 2025)
 
@@ -43,19 +45,23 @@ Seeds are specified in the notebooks, but exact results also depend on the runti
 
 ## Data availability
 
-The crash data are police-recorded STATS19 collisions. The other sources are listed in `data/README.md`, with their licences. Street View images are not shared, because their terms of use do not allow it.
+The crash data are police-recorded STATS19 collisions. The other sources and outstanding source/licence confirmations are listed in [data/README.md](data/README.md). Street View images are not shared, because their terms of use do not allow it.
 
 ## Citation
 
-[Citation of the paper to add]
+A final bibliographic citation and DOI are not supplied here. Use the paper title
+above and record the repository commit when referring to this implementation.
 
 ## Licence
 
-[Licence of the code and results to add]
+For repository code, see the existing [MIT licence](../LICENSE). Third-party data,
+imagery and pretrained-model terms remain separate; consult the [data source
+notes](data/README.md) before reuse. This does not add a new licence for those materials.
 
 ## Contact
 
-[Contact to add]
+For a code or documentation question, [open an issue](https://github.com/CycleAI/London-Cyclist-Crash-Severity-Prediction/issues).
+For research enquiries: [contact@cycleai.net](mailto:contact@cycleai.net).
 
 ## Reproduction boundary
 

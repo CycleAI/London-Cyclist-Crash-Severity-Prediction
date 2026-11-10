@@ -2,11 +2,22 @@
 
 Research code, intermediate data and enrichment tools connected to **Cyclist Crash Severity in Greater London: Multimodal Context, Temporal Validation and Feature Availability**. The latest supplied analysis package is linked below.
 
-**Start with [the latest paper package](cyclist-severity-london/README.md).** Code is grouped by task; distinct earlier methods are under `archive/`; data and browser viewers have their own locations. Seventeen duplicate or superseded files were consolidated. The audit records every replacement and all former paths.
+**Start with [the latest paper package](cyclist-severity-london/README.md).** Code is grouped by task; distinct earlier methods are under `archive/`; data and browser viewers have their own locations. The latest paper package is separate from earlier enrichment workflows and historical experiments.
 
 **Current package:** `cyclist-severity-london/` contains the 41,606-crash analysis, chronological split labels, final models, held-out predictions and paper figures supplied on 27 October 2026. Its saved test predictions reproduce the reported rounded balanced accuracy and ROC-AUC for the main models. The older October XGBoost description in the historical documentation is superseded. Some source-to-feature build inputs remain missing; complete end-to-end reproduction is not established. The outcome is severity conditional on a recorded cyclist crash, not crash occurrence or trip risk.
 
-## Contents
+## Quick review
+
+| To explore… | Open… |
+| --- | --- |
+| Study design and headline results | [Paper package](cyclist-severity-london/README.md) |
+| Model development and evaluation | [Final analysis notebook](cyclist-severity-london/notebooks/stage2_final_paper.ipynb) |
+| Held-out predictions, SHAP values and tables | [Results](cyclist-severity-london/results/README.md) |
+| Main and appendix figures | [Figures](cyclist-severity-london/figures/README.md) |
+| Fitted models | [Models](cyclist-severity-london/models/README.md) |
+| Data availability and sources | [Paper data guide](cyclist-severity-london/data/README.md) |
+
+## Repository structure
 
 | Entry | Purpose / inputs → outputs |
 | --- | --- |
@@ -29,3 +40,11 @@ For the browser viewer, run `python3 -m http.server 8000 --bind 127.0.0.1` from 
 The earlier reorganization preserved research data while relocating files. The public release additionally sanitizes all retained history and clears notebook outputs; see [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md). Notebook paths still require deliberate scratch staging. No training, inference, acquisition or cloud upload was run. See [the audit](documentation/REORGANIZATION_AUDIT.md) for consolidation evidence and the 20-column table reconstruction.
 
 Code retains the supplied MIT licence. Third-party data, imagery and pretrained-model terms remain separate.
+
+## Related research
+
+[Paper 1](https://github.com/CycleAI/Cycle-Safety-Perception-VLM) examines perceived
+cycling safety using human and vision-language-model judgements. It addresses a
+different outcome from crash injury severity.
+
+[CycleAI research catalogue](https://github.com/CycleAI) · [Contribution guide](https://github.com/CycleAI/.github/blob/main/CONTRIBUTING.md)

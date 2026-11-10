@@ -2,13 +2,18 @@
 
 [Repository overview](../README.md) · [Running guide](RUNNING_WORKFLOWS.md)
 
-Read the manuscript specification before interpreting archived results, the running guide before executing code, and the audit when looking for a renamed or removed file. These guides distinguish reported paper results from supplied source and unavailable final artifacts.
+For the current study, begin with the [latest paper package](../cyclist-severity-london/README.md).
+The manuscript-reference and provenance documents below record the earlier October
+archive; their XGBoost specifications and missing-model statements do not describe
+the newer paper package. Use the running guide for the older enrichment workflows
+and the audit when locating a renamed file. See [PUBLIC_RELEASE.md](../PUBLIC_RELEASE.md)
+for the current sanitization and reproducibility boundary.
 
 ## Contents
 
 | Entry | Purpose / inputs → outputs |
 | --- | --- |
-| [MANUSCRIPT_REFERENCE.md](MANUSCRIPT_REFERENCE.md) | Paper-reported design and results, missing final artifacts and interpretation boundary. |
+| [MANUSCRIPT_REFERENCE.md](MANUSCRIPT_REFERENCE.md) | Historical October manuscript specification, superseded by the latest paper package. |
 | [PROVENANCE.md](PROVENANCE.md) | ZIP provenance, previous scope cleanup, credential handling and subsequent reorganization record. |
 | [REORGANIZATION_AUDIT.md](REORGANIZATION_AUDIT.md) | All 17 consolidation decisions, retained variants, evidence and recovery instructions. |
 | [reorganization_manifest.json](reorganization_manifest.json) | Original-to-current path mapping, retained replacements and pre-reorganization SHA-256 hashes. |
